@@ -5,6 +5,7 @@
 # Nyamora (ニャモラ)
 ### AI-Powered Doujinshi Discovery Platform & Standalone PWA
 
+[![Live Production WebApp](https://img.shields.io/badge/Live%20WebApp-nyamora.vercel.app-brightgreen?style=for-the-badge&logo=vercel)](https://nyamora.vercel.app)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15.1-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
@@ -58,11 +59,11 @@ Interactive chat bubbles with violet narrative actions and real-time suggestion 
 
 <br />
 
-### 4. 18+ Birthday Verification Gate & Cloudflare Turnstile
-Strict age gate requiring date-of-birth verification alongside Cloudflare Turnstile bot deterrence before entering.
+### 4. Nyamora 18+ Birthday Verification Gate & Cloudflare Turnstile
+Nyamora's native modal featuring Nyan-chan talking in reactive speech bubbles, strict date-of-birth 18+ age verification, and Cloudflare Turnstile human check.
 
 <div align="center">
-  <img src="docs/screenshots/age-verification-gate.png" alt="18+ Verification & Cloudflare Turnstile" width="55%" style="border-radius: 16px; border: 1px solid #2e2640; box-shadow: 0 8px 30px rgba(0,0,0,0.6);" />
+  <img src="docs/screenshots/age-verification-gate.png" alt="Nyamora 18+ Verification & Cloudflare Turnstile" width="55%" style="border-radius: 16px; border: 1px solid #2e2640; box-shadow: 0 8px 30px rgba(0,0,0,0.6);" />
 </div>
 
 ---
@@ -220,16 +221,16 @@ Executes comprehensive automated test suites covering natural language parsing, 
 
 ---
 
-## 🌐 Cloud Deployment (Vercel + Supabase)
+## 🌐 Live Production Deployment
 
-### Deploying to Vercel (Recommended)
-1. Fork or push this repository to your GitHub account.
-2. Sign in to **[Vercel](https://vercel.com)** with GitHub and click **"Add New Project"**.
-3. Import **`Nyamora`**.
-4. In **Settings $\rightarrow$ Environment Variables**, add:
-   - `GROQ_API_KEY`: Your Groq API key.
-   - `DATABASE_URL`: Your Supabase or Neon PostgreSQL connection string.
-5. Click **Deploy**. Vercel will build the application across global edge nodes in under 60 seconds with zero sleep/cold starts.
+Nyamora is deployed and running live on **Vercel Edge** with **Supabase PostgreSQL**:
+
+👉 **[https://nyamora.vercel.app](https://nyamora.vercel.app)**
+
+- **Zero Inactivity Cold Starts**: Hosted across Vercel’s global Edge network, keeping pages, PWA assets, and reader views warm 24/7 with instant 50–100ms loading.
+- **Continuous Deployment (CI/CD)**: Every commit to the `main` branch automatically builds and deploys to production in under 60 seconds.
+- **Cloud Database Sync**: Backed by managed PostgreSQL on Supabase ensuring persistent multi-device accounts, bookmarks, and reading progress synchronization.
+- **Installable PWA**: Open [https://nyamora.vercel.app](https://nyamora.vercel.app) on your iPhone/iPad Safari or Android Chrome and tap **"Add to Home Screen"** to install Nyamora with our custom Nyan-chan icon.
 
 ---
 
