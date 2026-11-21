@@ -6,7 +6,7 @@ import { SearchResponse, Tag, Creator, AvailabilityMode } from '@/types';
 import { CatalogueCard } from '@/components/CatalogueCard';
 import {
   Search, Filter, SlidersHorizontal, LayoutGrid, List, X,
-  ChevronLeft, ChevronRight, RotateCcw, ShieldAlert, Sparkles, BookOpen
+  ChevronLeft, ChevronRight, RotateCcw, ShieldAlert, Sparkles, BookOpen, Globe
 } from 'lucide-react';
 
 function BrowseContent() {
@@ -27,6 +27,7 @@ function BrowseContent() {
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const currentLanguage = searchParams.get('language') || '';
   const currentAvailability = searchParams.get('availability') || '';
+  const currentSource = searchParams.get('source') || 'nyamora-local';
   const includeTags = (searchParams.get('include_tags') || '').split(',').filter(Boolean);
   const excludeTags = (searchParams.get('exclude_tags') || '').split(',').filter(Boolean);
 
@@ -169,6 +170,19 @@ function BrowseContent() {
             <Filter className="w-3.5 h-3.5 text-purple-400" />
             Filters {activeFilterChips.length > 0 && `(${activeFilterChips.length})`}
           </button>
+
+          {/* Source Provider Selector (Enma-style unified adapter) */}
+          <div className="flex items-center gap-1.5">
+            <Globe className="w-4 h-4 text-purple-400" />
+            <select
+              value={currentSource}
+              onChange={(e) => updateParams({ source: e.target.value === 'nyamora-local' ? null : e.target.value })}
+              className="text-xs font-semibold py-2 px-3 rounded-xl border bg-white dark:bg-[#13131e] border-slate-200 dark:border-[#222234] text-purple-600 dark:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="nyamora-local">Source: Nyamora Archive</option>
+              <option value="mangadex-api">Source: MangaDex Open API</option>
+            </select>
+          </div>
 
           {/* Sort Selector */}
           <div className="flex items-center gap-2">

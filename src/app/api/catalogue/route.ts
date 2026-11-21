@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hybridSearchService } from '@/search/hybrid-search';
+import { sourceManager } from '@/lib/sources/source-manager';
 import { StructuredSearchQuery } from '@/types';
 
 export async function GET(req: NextRequest) {
@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '12', 10);
     const language = searchParams.get('language') || undefined;
     const availability_mode = (searchParams.get('availability') || undefined) as any;
+    const source = searchParams.get('source') || undefined;
 
     const includeTagsParam = searchParams.get('include_tags');
     const excludeTagsParam = searchParams.get('exclude_tags');
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       pageSize
     };
 
-    const response = hybridSearchService.search(structuredQuery);
+    const response = await sourceManager.search(structuredQuery, source);
     return NextResponse.json(response);
   } catch (error: any) {
     console.error('Catalogue API error:', error);

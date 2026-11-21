@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { sourceManager } from '@/lib/sources/source-manager';
 
 export async function GET(
   req: NextRequest,
@@ -7,7 +8,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const item = db.getItemById(id);
+    let item = db.getItemById(id);
+
+    if (!item) {
+      item = (await sourceManager.getById(id)) || undefined;
+    }
 
     if (!item) {
       return NextResponse.json({ error: 'Catalogue entry not found' }, { status: 404 });
