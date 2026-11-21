@@ -102,7 +102,7 @@ Nyamora's native modal featuring Nyan-chan talking in reactive speech bubbles, s
 - Integrated Cloudflare Turnstile check (*"Verify you are human"*) to eliminate automated bots and scrapers.
 - Dismissal without age confirmation redirects off-site to protect minors.
 
-### ☁️ 6. Cross-Device Cloud Sync (PostgreSQL / Supabase / Neon)
+### ☁️ 6. Cross-Device Cloud Sync (PostgreSQL / Supabase)
 - **Multi-Device Session Portability**: Create an account on your iPhone, and log into the same account on your iPad or PC with persistent synchronization.
 - **Synchronized Cloud Library**: Bookmarks and reading progress update across devices in real time.
 - **Security-First Architecture**: Passwords hashed using Node's cryptographic `scrypt` with unique salts. Authenticated via tamper-proof signed session tokens and HTTP-only cookies.
@@ -123,7 +123,7 @@ Nyamora's native modal featuring Nyan-chan talking in reactive speech bubbles, s
 | **Language** | [TypeScript 5.7](https://www.typescriptlang.org/) |
 | **Styling & Design** | [Tailwind CSS 3.4](https://tailwindcss.com/) + Custom Charcoal/Violet Aesthetic (`#0b0b10`, `#a855f7`) |
 | **AI LLM Inference** | [Groq API](https://groq.com/) (Qwen 2.5 32B / Llama 3.3 70B Versatile) |
-| **Database & Persistence**| [PostgreSQL](https://www.postgresql.org/) ([Supabase](https://supabase.com/) or [Neon](https://neon.tech/)) via `pg.Pool` |
+| **Database & Persistence**| [PostgreSQL](https://www.postgresql.org/) ([Supabase](https://supabase.com/)  via `pg.Pool` |
 | **Bot Deterrence** | [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) |
 | **Icons & Visuals** | [Lucide React](https://lucide.dev/) |
 | **App Architecture** | Progressive Web App (PWA) with Standalone Display Mode |
@@ -184,7 +184,7 @@ Nyamora/
 - **Node.js**: `v20.x`, `v22.x`, or `v26.x`
 - **npm**: `v10.x` or higher
 - **Groq API Key**: (Get one for free at [console.groq.com](https://console.groq.com))
-- **PostgreSQL Database** *(Optional for multi-device cloud sync)*: [Supabase](https://supabase.com) or [Neon](https://neon.tech)
+- **PostgreSQL Database** *(Optional for multi-device cloud sync)*: [Supabase](https://supabase.com)
 
 ### 1. Clone & Install
 ```bash
