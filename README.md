@@ -78,7 +78,7 @@ Nyamora's native modal featuring Nyan-chan talking in reactive speech bubbles, s
   - `language`: Target language filtering (`english`, `japanese`, `chinese`).
 - **Grounded Retrieval**: All candidate recommendations are verified against live archive databases before being presented, eliminating generative hallucinations.
 
-### 🌐 2. Live nHentai API v2 Integration & Image Proxy
+### 🌐 2. Live nhentai API v2 Integration & Image Proxy
 - Direct connection to live archive APIs with automatic fallback to high-dimensional semantic vectors.
 - Multi-CDN image proxying (`/api/nhentai/image`) that bypasses client hotlinking restrictions and guarantees fast, reliable page loading.
 - Instant access to over 660,000+ galleries, trending releases, popular rankings, and character tags.
@@ -170,7 +170,7 @@ Nyamora/
 │   │   ├── db.ts            # In-memory relational database & vector index
 │   │   ├── postgres.ts      # PostgreSQL connection pool & automatic table migration
 │   │   ├── user-store.ts    # User repository with cross-device sync
-│   │   └── sources/         # Modular manga source providers (nHentai API v2)
+│   │   └── sources/         # Modular manga source providers (nhentai API v2)
 │   ├── search/
 │   │   └── hybrid-search.ts # Lexical BM25 + Vector embedding search
 │   └── tests/               # Automated unit & integration test suites
@@ -217,7 +217,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 ```bash
 npm test
 ```
-Executes comprehensive automated test suites covering natural language parsing, strict tag negations, vector embeddings, nHentai normalization, and cryptographic user authentication.
+Executes comprehensive automated test suites covering natural language parsing, strict tag negations, vector embeddings, nhentai normalization, and cryptographic user authentication.
 
 ---
 
