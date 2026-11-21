@@ -28,6 +28,7 @@ export function AdultAccessModal({ initialOpen = false, onClose }: AuthModalProp
 
   // Error & Status State
   const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ageCheck, setAgeCheck] = useState<{ age: number; is18Plus: boolean } | null>(null);
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export function AdultAccessModal({ initialOpen = false, onClose }: AuthModalProp
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -127,68 +128,98 @@ export function AdultAccessModal({ initialOpen = false, onClose }: AuthModalProp
       return;
     }
 
-    // Mode 2: Register Account
-    if (mode === 'register') {
-      if (!username.trim()) {
-        setFormError('Username is required.');
-        return;
-      }
-      if (!email.trim() || !email.includes('@')) {
-        setFormError('A valid email address is required.');
-        return;
-      }
-      if (!birthday) {
-        setFormError('Date of birth is required to verify 18+ eligibility.');
-        return;
-      }
-      if (ageCheck && !ageCheck.is18Plus) {
-        setFormError(`Entry denied: You must be 18 or older to access Nyamora (Current age: ${ageCheck.age}).`);
-        return;
-      }
-      if (password.length < 6) {
-        setFormError('Password must be at least 6 characters.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setFormError('Passwords do not match.');
-        return;
-      }
+    setIsSubmitting(true);
+    try {
+      // Mode 2: Register Account
+      if (mode === 'register') {
+        if (!username.trim()) {
+          setFormError('Username is required.');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!email.trim() || !email.includes('@')) {
+          setFormError('A valid email address is required.');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!birthday) {
+          setFormError('Date of birth is required to verify 18+ eligibility.');
+          setIsSubmitting(false);
+          return;
+        }
+        if (ageCheck && !ageCheck.is18Plus) {
+          setFormError(`Entry denied: You must be 18 or older to access Nyamora (Current age: ${ageCheck.age}).`);
+          setIsSubmitting(false);
+          return;
+        }
+        if (password.length < 6) {
+          setFormError('Password must be at least 6 characters.');
+          setIsSubmitting(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          setFormError('Passwords do not match.');
+          setIsSubmitting(false);
+          return;
+        }
 
-      // Successful Registration
-      const newUser = {
-        username: username.trim(),
-        email: email.trim(),
-        birthday,
-        is18Plus: true,
-        avatarUrl: '/avatars/nyan-chan.png',
-        joinedAt: new Date().toISOString()
-      };
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username.trim(),
+            email: email.trim(),
+            birthday,
+            password
+          })
+        });
 
-      localStorage.setItem('nyamora_user', JSON.stringify(newUser));
-      localStorage.setItem('nyamora_age_confirmed', 'true');
-      window.dispatchEvent(new Event('nyamora_auth_change'));
-      setIsOpen(false);
-      if (onClose) onClose();
-    } else {
-      // Mode 3: Login
-      if (!username.trim() || !password.trim()) {
-        setFormError('Username and password are required.');
-        return;
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error || 'Registration failed.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        localStorage.setItem('nyamora_user', JSON.stringify(data.user));
+        localStorage.setItem('nyamora_age_confirmed', 'true');
+        window.dispatchEvent(new Event('nyamora_auth_change'));
+        setIsOpen(false);
+        if (onClose) onClose();
+      } else {
+        // Mode 3: Login
+        if (!username.trim() || !password.trim()) {
+          setFormError('Username and password are required.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usernameOrEmail: username.trim(),
+            password
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setFormError(data.error || 'Invalid credentials.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        localStorage.setItem('nyamora_user', JSON.stringify(data.user));
+        localStorage.setItem('nyamora_age_confirmed', 'true');
+        window.dispatchEvent(new Event('nyamora_auth_change'));
+        setIsOpen(false);
+        if (onClose) onClose();
       }
-
-      const existingUser = {
-        username: username.trim(),
-        email: `${username.trim().toLowerCase()}@nyamora.local`,
-        is18Plus: true,
-        avatarUrl: '/avatars/nyan-chan.png',
-        joinedAt: new Date().toISOString()
-      };
-
-      localStorage.setItem('nyamora_user', JSON.stringify(existingUser));
-      localStorage.setItem('nyamora_age_confirmed', 'true');
-      window.dispatchEvent(new Event('nyamora_auth_change'));
-      setIsOpen(false);
-      if (onClose) onClose();
+    } catch (err) {
+      setFormError('Server connection error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -492,10 +523,15 @@ export function AdultAccessModal({ initialOpen = false, onClose }: AuthModalProp
             {/* Primary Action Button (nHentai Crimson / Violet Gradient) */}
             <button
               type="submit"
-              disabled={(mode === 'register' || mode === 'guest') && (ageCheck === null || !ageCheck.is18Plus)}
+              disabled={isSubmitting || ((mode === 'register' || mode === 'guest') && (ageCheck === null || !ageCheck.is18Plus))}
               className="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#9b1836] via-[#be185d] to-[#7c3aed] hover:opacity-95 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none transition-all shadow-glow flex items-center justify-center gap-2"
             >
-              {(mode === 'register' || mode === 'guest') && ageCheck && !ageCheck.is18Plus ? (
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span>Connecting with Nyan-chan...</span>
+                </div>
+              ) : (mode === 'register' || mode === 'guest') && ageCheck && !ageCheck.is18Plus ? (
                 'Under 18 • Entry Denied'
               ) : mode === 'guest' ? (
                 <>
