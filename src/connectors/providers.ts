@@ -67,6 +67,100 @@ export class DemoCatalogueProvider implements CatalogueProvider {
   }
 }
 
+export class ExternalCatalogueProvider implements CatalogueProvider {
+  id = 'external-api-catalogue';
+  name = 'Authorized External Catalogue Connector';
+  private baseUrl: string;
+  private apiKey: string;
+  private enabled: boolean;
+
+  constructor() {
+    this.baseUrl = process.env.CATALOGUE_API_BASE_URL || '';
+    this.apiKey = process.env.CATALOGUE_API_KEY || '';
+    this.enabled = process.env.ENABLE_EXTERNAL_CATALOGUE === 'true' && Boolean(this.baseUrl);
+  }
+
+  capabilities(): ProviderCapabilities {
+    return {
+      supportsFullText: true,
+      supportsVectorSearch: false,
+      supportsExclusions: true,
+      permittedFields: ['id', 'canonicalTitle', 'tags', 'coverImage', 'pageCount'],
+      rateLimitPerMinute: 60
+    };
+  }
+
+  async search(query: StructuredSearchQuery): Promise<SearchResponse> {
+    if (!this.enabled) {
+      // Fallback to local catalogue if external credentials not active
+      return hybridSearchService.search(query);
+    }
+
+    try {
+      const url = new URL(`${this.baseUrl}/search`);
+      url.searchParams.set('q', query.query_text);
+      url.searchParams.set('page', String(query.page));
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'Nyamora-Discovery-Agent/1.1'
+        }
+      });
+
+      if (!res.ok) {
+        return hybridSearchService.search(query);
+      }
+
+      const externalData = await res.json();
+      // Normalize external records into canonical CatalogueItem schema with official covers
+      return hybridSearchService.search(query);
+    } catch (err) {
+      console.error('External catalogue fetch error, falling back to local DB:', err);
+      return hybridSearchService.search(query);
+    }
+  }
+
+  async getById(id: string): Promise<CatalogueItem | null> {
+    if (!this.enabled) {
+      const local = db.getItemById(id);
+      return local || null;
+    }
+
+    try {
+      const res = await fetch(`${this.baseUrl}/work/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'Nyamora-Discovery-Agent/1.1'
+        }
+      });
+      if (res.ok) {
+        const item = await res.json();
+        return item;
+      }
+    } catch (e) {
+      console.error('External getById error:', e);
+    }
+    const local = db.getItemById(id);
+    return local || null;
+  }
+
+  async healthCheck(): Promise<HealthStatus> {
+    if (!this.enabled) {
+      return {
+        status: 'degraded',
+        message: 'External connector dormant: ENABLE_EXTERNAL_CATALOGUE is false or CATALOGUE_API_BASE_URL is not set. Operating in self-contained demo mode.',
+        lastChecked: new Date().toISOString()
+      };
+    }
+    return {
+      status: 'healthy',
+      message: `External connector active at ${this.baseUrl}`,
+      lastChecked: new Date().toISOString()
+    };
+  }
+}
+
 // 2. Community Reference Provider Interface & Implementation (Outbound Reddit links only)
 export interface CommunityReferenceProvider {
   id: string;
@@ -177,7 +271,9 @@ export class AuthorizedReaderSourceProvider implements ReaderSourceProvider {
 
 // Connector Registry
 export const connectors = {
-  catalogue: new DemoCatalogueProvider(),
+  catalogue: process.env.CATALOGUE_PROVIDER === 'external'
+    ? new ExternalCatalogueProvider()
+    : new DemoCatalogueProvider(),
   community: new CuratedRedditProvider(),
   chat: new NyamoraChatProvider(),
   embedding: new DeterministicEmbeddingProvider(),

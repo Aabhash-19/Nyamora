@@ -16,7 +16,7 @@ export default function AISearchPage() {
     {
       id: 'ai-init',
       sender: 'nyan_chan',
-      text: 'Nya-hello! Welcome to the **Nyamora AI Discovery Concierge**! ✨\n\nI can parse natural language queries, translate them into structured catalogue searches, and recommend rights-cleared works based on real stored metadata. You can tell me tropes, creators, or tags you want to include—or tell me what you want to avoid (e.g. *"wholesome elf romance without yandere"*). Nya~ (ฅ^•ﻌ•^ฅ)',
+      text: 'Nya~ Welcome to my private parlour, darling... ♡ I\'m **Nyan-chan**, your personal concierge here at **Nyamora**! ✨\n\nI can read your mind (well, your natural language searches!), translate your secret desires into verified archive searches, and uncover rights-cleared works based on real stored metadata. Tell me all your favorite tropes, artists, or guilty pleasures—and tell me what to strictly keep out (e.g. *"wholesome elf romance without yandere"*). Don\'t be shy, let\'s find something delicious for you tonight~ fufufu! (ฅ^•ﻌ•^ฅ)♡',
       timestamp: new Date().toISOString(),
       expression: 'wink',
       suggestedTags: ['wholesome', 'fantasy', 'elf', 'kemonomimi']

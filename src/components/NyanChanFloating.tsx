@@ -15,9 +15,9 @@ export function NyanChanFloating() {
     {
       id: 'welcome',
       sender: 'nyan_chan',
-      text: 'Nya-hello! I\'m **Nyan-chan**, your host at Nyamora! What kind of doujin or romance are you looking for today? Tell me your favorite trope, or what to avoid!',
+      text: 'Nya~ looking for something naughty tonight, darling? ♡ I\'m **Nyan-chan**, host of Nyamora. Tell me what kind of sweet or spicy doujin you\'re craving, or what you want me to keep away from your sight! (˶ᵔ ᵕ ᵔ˶)✨',
       timestamp: new Date().toISOString(),
-      expression: 'happy',
+      expression: 'wink',
       suggestedTags: ['wholesome', 'fantasy', 'kemonomimi', 'office romance']
     }
   ]);

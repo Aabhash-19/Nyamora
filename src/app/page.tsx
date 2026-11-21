@@ -131,7 +131,7 @@ export default function DiscoverHomePage() {
                     Host of Nyamora
                   </div>
                   <p className="text-white font-extrabold text-base">Nyan-chan (ニャンちゃん)</p>
-                  <p className="text-[11px] text-slate-300">"Looking for something sweet or spicy? Ask me anything!"</p>
+                  <p className="text-[11px] text-purple-200 font-medium">"Looking for something sweet... or deliciously wicked tonight? Whisper your desires to me, darling~ ♡"</p>
                 </div>
               </div>
             </div>
