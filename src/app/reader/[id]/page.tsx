@@ -31,6 +31,16 @@ export default function ReaderPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [fitMode, setFitMode] = useState<'fit-width' | 'fit-height' | 'original'>('fit-height');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [useProxy, setUseProxy] = useState(false);
+  const [pageSrc, setPageSrc] = useState<string>('');
+
+  const resolvePageUrl = useCallback((rawUrl: string, proxyActive: boolean) => {
+    if (!rawUrl) return '';
+    if (proxyActive && rawUrl.includes('nhentai.net') && !rawUrl.includes('/api/nhentai/image')) {
+      return `/api/nhentai/image?url=${encodeURIComponent(rawUrl)}`;
+    }
+    return rawUrl;
+  }, []);
 
   useEffect(() => {
     async function loadReader() {
@@ -41,8 +51,10 @@ export default function ReaderPage({
         setData(json);
 
         // Resume reading progress if available
-        if (json.readingProgress?.pageIndex) {
-          setCurrentPage(json.readingProgress.pageIndex);
+        const initPage = json.readingProgress?.pageIndex || 1;
+        setCurrentPage(initPage);
+        if (json.pages && json.pages[initPage - 1]?.imageUrl) {
+          setPageSrc(resolvePageUrl(json.pages[initPage - 1].imageUrl!, useProxy));
         }
       } catch (err) {
         console.error('Failed to load reader:', err);
@@ -51,7 +63,21 @@ export default function ReaderPage({
       }
     }
     loadReader();
-  }, [id]);
+  }, [id, resolvePageUrl, useProxy]);
+
+  // Update pageSrc on page change
+  useEffect(() => {
+    if (data?.pages && data.pages[currentPage - 1]?.imageUrl) {
+      setPageSrc(resolvePageUrl(data.pages[currentPage - 1].imageUrl!, useProxy));
+    }
+  }, [currentPage, data, useProxy, resolvePageUrl]);
+
+  const handlePageError = () => {
+    setUseProxy(true);
+    if (pageSrc.includes('nhentai.net') && !pageSrc.includes('/api/nhentai/image')) {
+      setPageSrc(`/api/nhentai/image?url=${encodeURIComponent(pageSrc)}`);
+    }
+  };
 
   const totalPages = data?.totalPages || data?.pages?.length || 1;
 
@@ -87,6 +113,31 @@ export default function ReaderPage({
       saveProgress(prev);
     }
   }, [currentPage, saveProgress]);
+
+  const touchStartX = React.useRef<number | null>(null);
+  const touchStartY = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Detect horizontal swipe with min 45px distance
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 45) {
+      if (diffX < 0) {
+        handleNextPage();
+      } else {
+        handlePrevPage();
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -242,6 +293,8 @@ export default function ReaderPage({
       {/* Main Reader Viewport */}
       <div
         className="flex-1 flex items-center justify-center p-2 relative cursor-pointer"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
           const clickX = e.clientX - rect.left;
@@ -257,8 +310,10 @@ export default function ReaderPage({
             fitMode === 'fit-height' ? 'h-[78vh]' : fitMode === 'fit-width' ? 'w-full max-w-4xl' : 'max-h-[85vh]'
           }`}>
             <img
-              src={activePage.imageUrl || data.item?.coverImage}
+              src={pageSrc || activePage.imageUrl || data.item?.coverImage}
               alt={`Page ${currentPage}`}
+              referrerPolicy="no-referrer"
+              onError={handlePageError}
               className={`rounded-lg object-contain shadow-2xl border border-[#222234] ${
                 fitMode === 'fit-height' ? 'h-full max-w-full' : 'w-full h-auto'
               }`}

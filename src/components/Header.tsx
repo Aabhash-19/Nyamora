@@ -13,6 +13,26 @@ export function Header() {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [isRandomLoading, setIsRandomLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
+
+  useEffect(() => {
+    const checkUser = () => {
+      try {
+        const stored = localStorage.getItem('nyamora_user');
+        if (stored) {
+          setCurrentUser(JSON.parse(stored));
+        } else {
+          setCurrentUser(null);
+        }
+      } catch {
+        setCurrentUser(null);
+      }
+    };
+    checkUser();
+
+    window.addEventListener('nyamora_auth_change', checkUser);
+    return () => window.removeEventListener('nyamora_auth_change', checkUser);
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +163,16 @@ export function Header() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          {/* Active Source Indicator */}
+          <Link
+            href="/browse?source=nhentai-api"
+            title="Active Source: nHentai Live Open API (Click to Browse)"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 transition-all"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>nHentai Live</span>
+          </Link>
+
           {/* Random Discovery */}
           <button
             onClick={handleRandomPick}
@@ -171,6 +201,38 @@ export function Header() {
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+
+          {/* Account & Register/Login Button */}
+          {currentUser ? (
+            <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-800">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {currentUser.username[0]?.toUpperCase() || 'U'}
+              </div>
+              <span className="hidden xl:inline text-xs font-semibold text-purple-300">
+                {currentUser.username}
+              </span>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('nyamora_user');
+                  window.dispatchEvent(new Event('nyamora_auth_change'));
+                }}
+                title="Sign Out"
+                className="text-[11px] text-slate-400 hover:text-rose-400 font-medium ml-1"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('nyamora_open_auth', { detail: { mode: 'register' } }));
+              }}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-glow transition-all flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Join</span>
+            </button>
+          )}
         </div>
 
       </div>

@@ -120,6 +120,23 @@ class NyamoraDatabase {
     return this.items.find(i => i.id === id);
   }
 
+  public upsertItem(item: CatalogueItem): void {
+    const existingIdx = this.items.findIndex(i => i.id === item.id);
+    if (existingIdx >= 0) {
+      this.items[existingIdx] = item;
+    } else {
+      this.items.push(item);
+    }
+    const text = `${item.canonicalTitle} ${item.alternateTitles.join(' ')} ${item.creatorName} ${item.tags.map(t => t.normalizedName).join(' ')} ${item.description}`;
+    this.itemEmbeddings.set(item.id, generateEmbedding(text));
+  }
+
+  public upsertItems(items: CatalogueItem[]): void {
+    for (const item of items) {
+      this.upsertItem(item);
+    }
+  }
+
   public getRandomItem(): CatalogueItem | undefined {
     const published = this.getItems({ visibilityStatus: 'published', eligibilityStatus: 'eligible' });
     if (published.length === 0) return undefined;
@@ -228,6 +245,9 @@ class NyamoraDatabase {
 
   // --- Community References (Outbound Only) ---
   public getCommunityReferences(itemId?: string): CommunityReference[] {
+    if (!this.communityReferences || this.communityReferences.length <= 1) {
+      this.communityReferences = [...SEED_COMMUNITY_REFERENCES];
+    }
     if (itemId) {
       return this.communityReferences.filter(c => c.itemId === itemId);
     }

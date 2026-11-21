@@ -20,6 +20,20 @@ export function CatalogueCard({
 }: CatalogueCardProps) {
   const [bookmarked, setBookmarked] = useState(isBookmarked);
   const [saveCount, setSaveCount] = useState(item.saveCount);
+  const [imgSrc, setImgSrc] = useState(item.coverImage);
+
+  // Sync if item changes
+  React.useEffect(() => {
+    setImgSrc(item.coverImage);
+  }, [item.coverImage]);
+
+  const handleImageError = () => {
+    if (imgSrc.includes('nhentai.net') && !imgSrc.includes('/api/nhentai/image')) {
+      setImgSrc(`/api/nhentai/image?url=${encodeURIComponent(imgSrc)}`);
+    } else {
+      setImgSrc('https://t1.nhentai.net/galleries/4345208/thumb.webp');
+    }
+  };
 
   const searchItem = item as SearchResultItem;
   const matchReasons = searchItem.matchReasons || [];
@@ -76,8 +90,10 @@ export function CatalogueCard({
       <div className="group relative flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl border transition-all bg-white dark:bg-[#13131c] border-slate-200 dark:border-[#212130] hover:border-purple-500/50 hover:shadow-glow">
         <Link href={`/item/${item.id}`} className="relative w-24 h-32 rounded-lg overflow-hidden flex-shrink-0 bg-slate-900 border border-slate-700/50">
           <img
-            src={item.coverImage}
+            src={imgSrc}
             alt={item.canonicalTitle}
+            referrerPolicy="no-referrer"
+            onError={handleImageError}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
@@ -158,8 +174,10 @@ export function CatalogueCard({
       {/* Cover Image */}
       <Link href={`/item/${item.id}`} className="relative aspect-[3/4] w-full overflow-hidden bg-slate-900">
         <img
-          src={item.coverImage}
+          src={imgSrc}
           alt={item.canonicalTitle}
+          referrerPolicy="no-referrer"
+          onError={handleImageError}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />

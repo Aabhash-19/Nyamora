@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --experimental-strip-types src/tests/search.test.mjs && node --experimental-strip-types src/tests/nyan-chan-and-reader.test.mjs && node --experimental-strip-types src/tests/source-manager.test.mjs"
+    "test": "node --experimental-strip-types src/tests/search.test.mjs && node --experimental-strip-types src/tests/nyan-chan-and-reader.test.mjs && node --experimental-strip-types src/tests/source-manager.test.mjs && node --experimental-strip-types src/tests/nhentai-source.test.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -8,12 +8,16 @@ export class HybridSearchService {
    */
   public parseNaturalQuery(rawText: string, existingQuery?: Partial<StructuredSearchQuery>): StructuredSearchQuery {
     const text = (rawText || '').trim();
+
+    // Check if the input is explicitly a refinement or addition to the previous search
+    const isRefinement = !text || /^\s*(?:\+|also|now|add|and|include|with|without|no|-|only|in\s+(?:english|japanese|chinese))\b/i.test(text);
+
     const query: StructuredSearchQuery = {
       query_text: text,
       concepts: [],
-      include_tags: [...(existingQuery?.include_tags || [])],
-      exclude_tags: [...(existingQuery?.exclude_tags || [])],
-      creator_terms: [...(existingQuery?.creator_terms || [])],
+      include_tags: isRefinement ? [...(existingQuery?.include_tags || [])] : [],
+      exclude_tags: isRefinement ? [...(existingQuery?.exclude_tags || [])] : [],
+      creator_terms: isRefinement ? [...(existingQuery?.creator_terms || [])] : [],
       title_terms: [...(existingQuery?.title_terms || [])],
       language: existingQuery?.language || null,
       sort: existingQuery?.sort || 'relevance',
@@ -24,66 +28,247 @@ export class HybridSearchService {
 
     if (!text) return query;
 
-    // Detect negation patterns: "not X", "without X", "avoid X", "-X", "no X"
-    const negationRegex = /\b(?:not|without|avoid|no)\s+([a-zA-Z0-9_-]+)/gi;
+    // Common synonyms and normalization dictionary
+    const SYNONYM_MAP: Record<string, string> = {
+      'ntr': 'netorare',
+      'netotare': 'netorare',
+      'netorase': 'netorare',
+      'cheating': 'netorare',
+      'infidelity': 'netorare',
+      'ub': 'ugly bastard',
+      'ugly bastard': 'ugly bastard',
+      'fat bastard': 'ugly bastard',
+      'mind break': 'mind break',
+      'mindbreak': 'mind break',
+      'fgo': 'fate grand order',
+      'fate': 'fate grand order',
+      'ba': 'blue archive',
+      'genshin': 'genshin impact',
+      'hsr': 'honkai star rail',
+      'star rail': 'honkai star rail',
+      'imas': 'the idolmaster',
+      'idolmaster': 'the idolmaster',
+      'kancolle': 'kantai collection',
+      'touhou': 'touhou project',
+      'neko': 'catgirl',
+      'cat girl': 'catgirl',
+      'kitsune': 'foxgirl',
+      'fox girl': 'foxgirl',
+      'wolf girl': 'wolfgirl',
+      'bunny girl': 'bunny girl',
+      'cowgirl': 'cowgirl',
+      'monster girl': 'monster girl',
+      'vanilla': 'wholesome',
+      'femdom': 'female domination',
+      'oppai': 'big breasts',
+      'huge breasts': 'big breasts',
+      'pettanko': 'flat chest',
+      'small breasts': 'flat chest',
+      'megane': 'glasses',
+      'maid cafe': 'maid',
+      'maids': 'maid',
+      'elves': 'elf',
+      'ol': 'office lady',
+      'gal': 'gyaru',
+      'shota': 'shotacon',
+      'onee-san': 'onee-san',
+      'oneesan': 'onee-san',
+      'goth': 'gothic',
+      'swimsuit': 'swimsuit',
+      'bikini': 'swimsuit',
+      'pantyhose': 'stockings',
+      'color': 'full color',
+      'colored': 'full color',
+      'translated': 'english',
+      'raw': 'japanese',
+      'yuri': 'yuri',
+      'yaoi': 'yaoi',
+      'bl': 'yaoi',
+      'futanari': 'futanari',
+      'dickgirl': 'futanari',
+      'tentacles': 'tentacles',
+      'bondage': 'bondage',
+      'bdsm': 'bondage',
+      'shibari': 'bondage',
+      'dark skin': 'dark skin',
+      'tan': 'dark skin',
+      'tanned': 'dark skin',
+      'milf': 'milf',
+      'dilf': 'mature male',
+      'mature': 'mature female',
+      'incest': 'incest',
+      'sister': 'sister',
+      'imouto': 'sister',
+      'mother': 'mother',
+      'nakadashi': 'nakadashi',
+      'creampie': 'nakadashi',
+      'paizuri': 'paizuri',
+      'ahegao': 'ahegao',
+      'sole male': 'sole male',
+      'sole female': 'sole female',
+      'group': 'group',
+      'threesome': 'group',
+      'gangbang': 'group',
+      'full color': 'full color',
+      'uncensored': 'uncensored',
+      'decensored': 'uncensored'
+    };
+
+    // Parody list
+    const KNOWN_PARODIES = new Set([
+      'fate grand order', 'genshin impact', 'blue archive', 'honkai star rail',
+      'touhou project', 'the idolmaster', 'kantai collection', 'hololive',
+      'pokemon', 'azur lane', 'granblue fantasy', 'naruto', 'one piece'
+    ]);
+
+    // Comprehensive Doujinshi & Manga Tag Taxonomy
+    const KNOWN_TAGS = new Set([
+      'netorare', 'ugly bastard', 'cheating', 'infidelity', 'wholesome', 'vanilla',
+      'romance', 'fantasy', 'parody', 'kemonomimi', 'catgirl', 'foxgirl', 'wolfgirl',
+      'bunny girl', 'cowgirl', 'monster girl', 'elf', 'maid', 'gothic', 'yandere',
+      'tsundere', 'kuudere', 'comedy', 'gyaru', 'milf', 'mature female', 'dilf',
+      'mature male', 'shota', 'shotacon', 'onee-san', 'sister', 'femdom',
+      'female domination', 'big breasts', 'small breasts', 'flat chest', 'stockings',
+      'swimsuit', 'bikini', 'glasses', 'schoolgirl', 'schoolgirl uniform', 'office lady',
+      'teacher', 'nurse', 'succubus', 'demon girl', 'dark skin', 'bondage', 'futanari',
+      'yuri', 'yaoi', 'tentacles', 'mind break', 'incest', 'nakadashi', 'ahegao',
+      'paizuri', 'sole male', 'sole female', 'group', 'full color', 'uncensored',
+      'doujinshi', 'manga', 'tomboy', 'crossdressing', 'exhibitionism', 'cosplay'
+    ]);
+
+    // Popular Creators
+    const KNOWN_CREATORS = [
+      'Asanagi', 'Victim Girls', 'Distance', 'Hisasi', 'M-Gokurakudou',
+      'ReDrop', 'Inumata', 'Dog Style', 'Oouso', 'Usotei', 'Mochizuki Aoi',
+      'Shindo L', 'Homunculus', 'Cuvie', 'Crimson', 'Hirame', 'Nanashi',
+      'MEME50', 'Mizone', 'Takeda Hiromitsu', 'Alphonse', 'Urashiman', 'Chiba Toshirou'
+    ];
+
+    const resolveTagId = (term: string, isParodyHint = false): string => {
+      const clean = term.toLowerCase().trim();
+      const mapped = SYNONYM_MAP[clean] || clean;
+      const matched = db.getTagByName(mapped);
+      if (matched) return matched.id;
+      if (isParodyHint || KNOWN_PARODIES.has(mapped)) {
+        return `parody-${mapped.replace(/\s+/g, '-')}`;
+      }
+      return `tag-${mapped.replace(/\s+/g, '-')}`;
+    };
+
+    let workingText = text;
+
+    // Detect multi-word & single-word negation patterns: "without X", "no X", "not X", "avoid X", "except X", "skip X"
+    const negationRegex = /\b(?:not|without|avoid|no|except|skip|hate|minus)\s+([a-zA-Z0-9_\s-]+?)(?=\s+(?:not|without|avoid|no|except|skip|with|and|in|\+|-)|$)/gi;
     let match: RegExpExecArray | null;
     while ((match = negationRegex.exec(text)) !== null) {
-      const excludedWord = match[1].toLowerCase();
-      const matchedTag = db.getTagByName(excludedWord);
-      if (matchedTag) {
-        if (!query.exclude_tags.includes(matchedTag.id)) {
-          query.exclude_tags.push(matchedTag.id);
+      const rawExcluded = match[1].trim();
+      if (!rawExcluded) continue;
+      // Handle comma or "or" separated multi-negations
+      const subParts = rawExcluded.split(/\s+(?:or|and|,)\s+/i);
+      for (const part of subParts) {
+        const cleanPart = part.toLowerCase().trim();
+        if (cleanPart.length < 2) continue;
+        const tagId = resolveTagId(cleanPart);
+        if (!query.exclude_tags.includes(tagId)) {
+          query.exclude_tags.push(tagId);
         }
-      } else {
-        query.exclude_tags.push(`custom:${excludedWord}`);
       }
     }
 
-    // Direct minus syntax: -tag
-    const minusRegex = /(?:^|\s)-([a-zA-Z0-9_-]+)/g;
-    while ((match = minusRegex.exec(text)) !== null) {
-      const excludedWord = match[1].toLowerCase();
-      const matchedTag = db.getTagByName(excludedWord);
-      if (matchedTag && !query.exclude_tags.includes(matchedTag.id)) {
-        query.exclude_tags.push(matchedTag.id);
+    // Direct minus syntax: -tag or -"multi word"
+    const minusQuotedRegex = /(?:^|\s)-"([^"]+)"/g;
+    while ((match = minusQuotedRegex.exec(text)) !== null) {
+      const tagId = resolveTagId(match[1]);
+      if (!query.exclude_tags.includes(tagId)) {
+        query.exclude_tags.push(tagId);
       }
     }
 
-    // Tokenize remaining words for inclusion & tags
-    const cleanedText = text
-      .replace(/\b(?:not|without|avoid|no)\s+([a-zA-Z0-9_-]+)/gi, ' ')
+    const minusSimpleRegex = /(?:^|\s)-([a-zA-Z0-9_-]+)/g;
+    while ((match = minusSimpleRegex.exec(text)) !== null) {
+      const tagId = resolveTagId(match[1]);
+      if (!query.exclude_tags.includes(tagId)) {
+        query.exclude_tags.push(tagId);
+      }
+    }
+
+    // Check for explicit sort signals in text
+    if (/\b(?:popular|top(?:\s+rated)?|best|hottest|most\s+saved|favorites)\b/i.test(text)) {
+      query.sort = 'popular';
+    } else if (/\b(?:newest|latest|recent|fresh|new\s+uploads)\b/i.test(text)) {
+      query.sort = 'newest';
+    }
+
+    // Check for creator matches
+    const allDbCreators = db.getCreators();
+    const combinedCreators = [...KNOWN_CREATORS, ...allDbCreators.map(c => c.displayName)];
+    for (const cName of combinedCreators) {
+      const escaped = cName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const cRegex = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (cRegex.test(workingText)) {
+        if (!query.creator_terms.includes(cName)) {
+          query.creator_terms.push(cName);
+        }
+        workingText = workingText.replace(cRegex, ' ');
+      }
+    }
+
+    // Check for language signals
+    if (/\b(?:english|translated|eng)\b/i.test(workingText)) {
+      query.language = 'english';
+    } else if (/\b(?:japanese|raw|jp|nihongo)\b/i.test(workingText)) {
+      query.language = 'japanese';
+    } else if (/\b(?:chinese|traditional\s+chinese|simplified\s+chinese|cn)\b/i.test(workingText)) {
+      query.language = 'chinese';
+    }
+
+    // Strip negation phrases out of workingText so they don't pollute inclusion tags
+    const cleanedText = workingText
+      .replace(/\b(?:not|without|avoid|no|except|skip|hate|minus)\s+([a-zA-Z0-9_\s-]+?)(?=\s+(?:not|without|avoid|no|except|skip|with|and|in|\+|-)|$)/gi, ' ')
+      .replace(/(?:^|\s)-"[^"]+"/g, ' ')
       .replace(/(?:^|\s)-([a-zA-Z0-9_-]+)/g, ' ')
       .replace(/[^\w\s-]/g, ' ')
       .trim();
 
-    const tokens = cleanedText.split(/\s+/).filter(t => t.length > 1);
-
-    for (const token of tokens) {
-      const lowerToken = token.toLowerCase();
-      // Check creator matching
-      const allCreators = db.getCreators();
-      const matchedCreator = allCreators.find(c =>
-        c.displayName.toLowerCase().includes(lowerToken) ||
-        (c.canonicalIdentifier && c.canonicalIdentifier.toLowerCase().includes(lowerToken))
-      );
-      if (matchedCreator && !query.creator_terms.includes(matchedCreator.displayName)) {
-        query.creator_terms.push(matchedCreator.displayName);
-      }
-
-      // Check tag matching
-      const matchedTag = db.getTagByName(lowerToken);
-      if (matchedTag && !query.include_tags.includes(matchedTag.id) && !query.exclude_tags.includes(matchedTag.id)) {
-        query.include_tags.push(matchedTag.id);
-      }
-
-      // Check language terms
-      if (['japanese', 'english', 'chinese'].includes(lowerToken)) {
-        query.language = lowerToken;
+    // Check multi-word phrase tags first (e.g. 'fate grand order', 'blue archive', 'office lady', 'big breasts', 'flat chest')
+    for (const [synKey, synVal] of Object.entries(SYNONYM_MAP)) {
+      if (synKey.includes(' ')) {
+        const synRegex = new RegExp(`\\b${synKey}\\b`, 'i');
+        if (synRegex.test(cleanedText)) {
+          const tagId = resolveTagId(synVal);
+          if (!query.include_tags.includes(tagId) && !query.exclude_tags.includes(tagId)) {
+            query.include_tags.push(tagId);
+          }
+        }
       }
     }
 
-    // Remaining concepts
-    query.concepts = tokens.filter(t => t.length > 2);
+    const tokens = cleanedText.split(/\s+/).filter(t => t.length > 1);
+
+    const STOPWORDS = new Set([
+      'show', 'me', 'find', 'give', 'want', 'looking', 'for', 'works', 'doujin', 'doujins',
+      'manga', 'please', 'can', 'you', 'something', 'with', 'and', 'the', 'in', 'of', 'a', 'an'
+    ]);
+
+    for (const token of tokens) {
+      const lowerToken = token.toLowerCase();
+      if (STOPWORDS.has(lowerToken)) continue;
+
+      // Check tag matching
+      const mapped = SYNONYM_MAP[lowerToken] || lowerToken;
+      const tagId = resolveTagId(mapped);
+      const isExcluded = query.exclude_tags.some(ex => ex === tagId || ex.endsWith(mapped));
+
+      if (!isExcluded && !query.include_tags.includes(tagId)) {
+        const isKnown = KNOWN_TAGS.has(mapped) || Boolean(db.getTagByName(mapped)) || KNOWN_PARODIES.has(mapped) || Boolean(SYNONYM_MAP[lowerToken]);
+        if (isKnown) {
+          query.include_tags.push(tagId);
+        }
+      }
+    }
+
+    // Remaining concepts (excluding stopwords)
+    query.concepts = tokens.filter(t => t.length > 2 && !STOPWORDS.has(t.toLowerCase()));
 
     return query;
   }
@@ -104,7 +289,7 @@ export class HybridSearchService {
       .filter(t => t.startsWith('custom:'))
       .map(t => t.replace('custom:', '').toLowerCase());
 
-    const eligibleItems = allPublished.filter(item => {
+    let eligibleItems = allPublished.filter(item => {
       // Check tag ID exclusions
       const hasExcludedTag = item.tags.some(t => excludeTagIds.has(t.id));
       if (hasExcludedTag) return false;
@@ -117,7 +302,7 @@ export class HybridSearchService {
       }
 
       // Check language filter
-      if (query.language && item.language.toLowerCase() !== query.language.toLowerCase()) {
+      if (query.language && query.language !== 'any' && item.language.toLowerCase() !== query.language.toLowerCase()) {
         return false;
       }
 
@@ -126,15 +311,28 @@ export class HybridSearchService {
         return false;
       }
 
-      // Check mandatory include_tags if any
-      if (query.include_tags.length > 0) {
-        const itemTagIds = new Set(item.tags.map(t => t.id));
-        const hasAllIncludes = query.include_tags.every(tid => itemTagIds.has(tid));
-        if (!hasAllIncludes) return false;
-      }
-
       return true;
     });
+
+    // Check include_tags: prefer items matching ALL, fallback to items matching ANY
+    if (query.include_tags.length > 0) {
+      const allMatching = eligibleItems.filter(item => {
+        const itemTagIds = new Set(item.tags.map(t => t.id));
+        return query.include_tags.every(tid => itemTagIds.has(tid));
+      });
+
+      if (allMatching.length > 0) {
+        eligibleItems = allMatching;
+      } else {
+        const anyMatching = eligibleItems.filter(item => {
+          const itemTagIds = new Set(item.tags.map(t => t.id));
+          return query.include_tags.some(tid => itemTagIds.has(tid));
+        });
+        if (anyMatching.length > 0) {
+          eligibleItems = anyMatching;
+        }
+      }
+    }
 
     // If query text is empty and no specific terms, return sorted eligible items
     if (!query.query_text.trim() && query.include_tags.length === 0 && query.creator_terms.length === 0) {

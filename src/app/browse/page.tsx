@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { SearchResponse, Tag, Creator, AvailabilityMode } from '@/types';
+import { SearchResponse, Tag, Creator } from '@/types';
 import { CatalogueCard } from '@/components/CatalogueCard';
 import {
   Search, Filter, SlidersHorizontal, LayoutGrid, List, X,
-  ChevronLeft, ChevronRight, RotateCcw, ShieldAlert, Sparkles, BookOpen, Globe
+  ChevronLeft, ChevronRight, RotateCcw, ShieldAlert, Sparkles, BookOpen, Globe,
+  Plus, Minus, Flame, Tag as TagIcon, Users
 } from 'lucide-react';
 
 function BrowseContent() {
@@ -21,19 +22,24 @@ function BrowseContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
+  // Tag search & category tab
+  const [tagCategoryTab, setTagCategoryTab] = useState<'popular' | 'parody' | 'character' | 'exclusions'>('popular');
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [liveSearchResults, setLiveSearchResults] = useState<Tag[]>([]);
+  const [isSearchingTags, setIsSearchingTags] = useState(false);
+
   // Form / Filter states derived from URL or inputs
   const currentQuery = searchParams.get('q') || '';
   const currentSort = searchParams.get('sort') || 'relevance';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const currentLanguage = searchParams.get('language') || '';
   const currentAvailability = searchParams.get('availability') || '';
-  const currentSource = searchParams.get('source') || 'nyamora-local';
   const includeTags = (searchParams.get('include_tags') || '').split(',').filter(Boolean);
   const excludeTags = (searchParams.get('exclude_tags') || '').split(',').filter(Boolean);
 
   const [inputSearch, setInputSearch] = useState(currentQuery);
 
-  // Load available tags and creators on mount
+  // Load baseline nHentai tags and creators on mount
   useEffect(() => {
     async function loadMetadata() {
       try {
@@ -51,6 +57,33 @@ function BrowseContent() {
     }
     loadMetadata();
   }, []);
+
+  // Live nHentai tag search when user types in the tag filter box
+  useEffect(() => {
+    const q = tagSearchQuery.trim();
+    if (q.length < 2) {
+      setLiveSearchResults([]);
+      setIsSearchingTags(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingTags(true);
+        const res = await fetch(`/api/tags?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const json = await res.json();
+          setLiveSearchResults(json.tags || []);
+        }
+      } catch (err) {
+        console.error('Failed to search tags:', err);
+      } finally {
+        setIsSearchingTags(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [tagSearchQuery]);
 
   // Fetch search/catalogue results whenever URL query params change
   useEffect(() => {
@@ -73,10 +106,10 @@ function BrowseContent() {
     }
     fetchResults();
     setInputSearch(currentQuery);
-  }, [searchParams]);
+  }, [searchParams, currentQuery]);
 
   // Update URL helper
-  const updateParams = (updates: Record<string, string | null>) => {
+  const updateParams = useCallback((updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
     for (const [key, val] of Object.entries(updates)) {
       if (val === null || val === '') {
@@ -90,7 +123,7 @@ function BrowseContent() {
       params.set('page', '1');
     }
     router.push(`/browse?${params.toString()}`);
-  };
+  }, [searchParams, router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,21 +156,43 @@ function BrowseContent() {
 
   const handleClearAllFilters = () => {
     setInputSearch('');
+    setTagSearchQuery('');
     router.push('/browse');
+  };
+
+  const formatCount = (num?: number) => {
+    if (!num) return '';
+    if (num >= 1000) return `${(num / 1000).toFixed(0)}k`;
+    return String(num);
   };
 
   const activeFilterChips = [
     ...includeTags.map(id => {
-      const tag = allTags.find(t => t.id === id);
+      const tag = allTags.find(t => t.id === id || t.normalizedName === id);
       return { id, label: `+ #${tag?.normalizedName || id}`, type: 'include' };
     }),
     ...excludeTags.map(id => {
-      const tag = allTags.find(t => t.id === id);
+      const tag = allTags.find(t => t.id === id || t.normalizedName === id);
       return { id, label: `- #${tag?.normalizedName || id}`, type: 'exclude' };
     }),
     ...(currentLanguage ? [{ id: 'lang', label: `Lang: ${currentLanguage}`, type: 'lang' }] : []),
     ...(currentAvailability ? [{ id: 'avail', label: `Mode: ${currentAvailability}`, type: 'avail' }] : [])
   ];
+
+  // Filtered tags for current category tab
+  const getCategoryTags = () => {
+    switch (tagCategoryTab) {
+      case 'parody':
+        return allTags.filter(t => t.category === 'parody');
+      case 'character':
+        return allTags.filter(t => t.category === 'character');
+      case 'exclusions':
+        return allTags.filter(t => ['ugly-bastard', 'netorare', 'mind-break', 'cheating', 'guro', 'scat'].includes(t.id));
+      case 'popular':
+      default:
+        return allTags.filter(t => t.category === 'theme' && !['ugly-bastard', 'netorare'].includes(t.id));
+    }
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -147,7 +202,7 @@ function BrowseContent() {
         <form onSubmit={handleSearchSubmit} className="relative flex-1">
           <input
             type="text"
-            placeholder="Search titles, creators, tags, or concepts (supports 'not X' or '-tag')..."
+            placeholder="Search nHentai releases, characters, parodies, or tags..."
             value={inputSearch}
             onChange={(e) => setInputSearch(e.target.value)}
             className="w-full pl-10 pr-28 py-3 text-sm rounded-2xl border transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-[#13131e] border-slate-200 dark:border-[#222234] text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
@@ -157,7 +212,7 @@ function BrowseContent() {
             type="submit"
             className="absolute right-2 top-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-glow"
           >
-            Filter
+            Search
           </button>
         </form>
 
@@ -168,21 +223,8 @@ function BrowseContent() {
             className="lg:hidden px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 bg-slate-100 dark:bg-[#161622] border-slate-300 dark:border-[#27273c]"
           >
             <Filter className="w-3.5 h-3.5 text-purple-400" />
-            Filters {activeFilterChips.length > 0 && `(${activeFilterChips.length})`}
+            nHentai Filters {activeFilterChips.length > 0 && `(${activeFilterChips.length})`}
           </button>
-
-          {/* Source Provider Selector (Enma-style unified adapter) */}
-          <div className="flex items-center gap-1.5">
-            <Globe className="w-4 h-4 text-purple-400" />
-            <select
-              value={currentSource}
-              onChange={(e) => updateParams({ source: e.target.value === 'nyamora-local' ? null : e.target.value })}
-              className="text-xs font-semibold py-2 px-3 rounded-xl border bg-white dark:bg-[#13131e] border-slate-200 dark:border-[#222234] text-purple-600 dark:text-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="nyamora-local">Source: Nyamora Archive</option>
-              <option value="mangadex-api">Source: MangaDex Open API</option>
-            </select>
-          </div>
 
           {/* Sort Selector */}
           <div className="flex items-center gap-2">
@@ -192,12 +234,9 @@ function BrowseContent() {
               onChange={(e) => updateParams({ sort: e.target.value })}
               className="text-xs font-semibold py-2 px-3 rounded-xl border bg-white dark:bg-[#13131e] border-slate-200 dark:border-[#222234] text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="relevance">Sort: Highest Relevance</option>
-              <option value="popular">Sort: Most Popular (Saves)</option>
-              <option value="newest">Sort: Recently Added</option>
-              <option value="publication_date">Sort: Release Date</option>
-              <option value="title_asc">Sort: Title (A – Z)</option>
-              <option value="title_desc">Sort: Title (Z – A)</option>
+              <option value="relevance">Sort: Most Relevant</option>
+              <option value="popular">Sort: Popular Right Now</option>
+              <option value="newest">Sort: New Uploads</option>
             </select>
           </div>
 
@@ -233,19 +272,19 @@ function BrowseContent() {
       {activeFilterChips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl border bg-purple-500/5 border-purple-500/20 text-xs">
           <span className="font-semibold text-purple-400 flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Active:
+            <Filter className="w-3.5 h-3.5" /> Active nHentai Filters:
           </span>
 
           {activeFilterChips.map(chip => (
             <span
               key={chip.id}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-medium shadow-sm transition-all ${
                 chip.type === 'exclude'
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  : 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
               }`}
             >
-              {chip.label}
+              <span>{chip.label}</span>
               <button
                 onClick={() => {
                   if (chip.type === 'include') toggleIncludeTag(chip.id);
@@ -253,7 +292,8 @@ function BrowseContent() {
                   else if (chip.type === 'lang') updateParams({ language: null });
                   else if (chip.type === 'avail') updateParams({ availability: null });
                 }}
-                className="hover:text-white"
+                className="hover:text-white rounded-full p-0.5 hover:bg-black/20"
+                title="Remove Filter"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -262,9 +302,9 @@ function BrowseContent() {
 
           <button
             onClick={handleClearAllFilters}
-            className="ml-auto text-slate-400 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors"
+            className="ml-auto text-slate-400 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors px-2 py-1 rounded-lg hover:bg-rose-500/10"
           >
-            <RotateCcw className="w-3 h-3" /> Clear All
+            <RotateCcw className="w-3 h-3" /> Reset Filters
           </button>
         </div>
       )}
@@ -280,7 +320,7 @@ function BrowseContent() {
         >
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-[#202030]">
             <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-              <Filter className="w-4 h-4 text-purple-400" /> Advanced Filter
+              <Filter className="w-4 h-4 text-purple-400" /> nHentai Tag Filters
             </h3>
             {activeFilterChips.length > 0 && (
               <button
@@ -292,41 +332,14 @@ function BrowseContent() {
             )}
           </div>
 
-          {/* Availability Mode */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Availability Mode
-            </h4>
-            <div className="space-y-1 text-xs">
-              {[
-                { id: '', label: 'All Modes' },
-                { id: 'integrated_licensed', label: '📖 Licensed Reader Only' },
-                { id: 'external_authorized', label: '🔗 DLsite / Partner Store' },
-                { id: 'metadata_only', label: '🏛 Archival Metadata Only' }
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  onClick={() => updateParams({ availability: opt.id || null })}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-between ${
-                    currentAvailability === opt.id
-                      ? 'bg-purple-600 text-white font-semibold'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1a1a28]'
-                  }`}
-                >
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Language Selector */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Language
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" /> Language
             </h4>
             <div className="grid grid-cols-2 gap-1 text-xs">
               {[
-                { id: '', label: 'Any Language' },
+                { id: '', label: 'All Languages' },
                 { id: 'english', label: 'English' },
                 { id: 'japanese', label: 'Japanese' },
                 { id: 'chinese', label: 'Chinese' }
@@ -336,7 +349,7 @@ function BrowseContent() {
                   onClick={() => updateParams({ language: opt.id || null })}
                   className={`px-2 py-1.5 rounded-lg text-center font-medium transition-colors ${
                     currentLanguage === opt.id
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-purple-600 text-white font-bold shadow-glow'
                       : 'text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-[#171724] hover:bg-purple-100 dark:hover:bg-purple-950/50'
                   }`}
                 >
@@ -346,60 +359,203 @@ function BrowseContent() {
             </div>
           </div>
 
-          {/* Include Tags Selector */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Include Tags (+)
-              </h4>
-              <span className="text-[10px] text-slate-500">Tap to include</span>
+          {/* Quick Tag Search / Add Input */}
+          <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#202030]">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <TagIcon className="w-3.5 h-3.5" /> Search Any nHentai Tag
+            </h4>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Type tag (e.g. maid, elf, stockings)..."
+                value={tagSearchQuery}
+                onChange={(e) => setTagSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-7 py-2 text-xs rounded-xl border bg-slate-50 dark:bg-[#161622] border-slate-200 dark:border-[#26263a] text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+              {tagSearchQuery && (
+                <button
+                  onClick={() => setTagSearchQuery('')}
+                  className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
-            <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto p-1">
-              {allTags.map(tag => {
-                const isInc = includeTags.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleIncludeTag(tag.id)}
-                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors ${
-                      isInc
-                        ? 'bg-purple-600 text-white shadow-glow'
-                        : 'bg-slate-100 dark:bg-[#171724] text-slate-600 dark:text-slate-400 hover:text-purple-400'
-                    }`}
-                  >
-                    #{tag.normalizedName}
-                  </button>
-                );
-              })}
-            </div>
+
+            {/* Live Autocomplete Results */}
+            {tagSearchQuery.trim().length >= 2 && (
+              <div className="p-2 rounded-xl bg-slate-100 dark:bg-[#141420] border border-slate-200 dark:border-[#242436] space-y-1.5 max-h-48 overflow-y-auto">
+                {isSearchingTags ? (
+                  <p className="text-[11px] text-slate-400 py-2 text-center animate-pulse">Searching nHentai tags...</p>
+                ) : liveSearchResults.length > 0 ? (
+                  liveSearchResults.map(tag => {
+                    const isInc = includeTags.includes(tag.id) || includeTags.includes(tag.normalizedName);
+                    const isExc = excludeTags.includes(tag.id) || excludeTags.includes(tag.normalizedName);
+                    return (
+                      <div
+                        key={tag.id}
+                        className={`flex items-center justify-between p-1.5 rounded-lg text-[11px] transition-colors ${
+                          isInc
+                            ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40'
+                            : isExc
+                            ? 'bg-rose-600/30 text-rose-200 border border-rose-500/40'
+                            : 'bg-white dark:bg-[#191926] text-slate-300'
+                        }`}
+                      >
+                        <span className="font-semibold truncate max-w-[130px]">
+                          #{tag.normalizedName}
+                          {tag.count && <span className="text-[9px] text-slate-400 ml-1">({formatCount(tag.count)})</span>}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleIncludeTag(tag.id)}
+                            className={`p-1 rounded text-[10px] font-bold ${
+                              isInc ? 'bg-purple-600 text-white' : 'bg-slate-200 dark:bg-[#222232] hover:bg-purple-600 hover:text-white'
+                            }`}
+                            title="Include Tag (+)"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => toggleExcludeTag(tag.id)}
+                            className={`p-1 rounded text-[10px] font-bold ${
+                              isExc ? 'bg-rose-600 text-white' : 'bg-slate-200 dark:bg-[#222232] hover:bg-rose-600 hover:text-white'
+                            }`}
+                            title="Exclude Tag (-)"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-center py-2 space-y-1">
+                    <p className="text-[11px] text-slate-400">No tag found matching "{tagSearchQuery}"</p>
+                    <div className="flex items-center justify-center gap-1 pt-1">
+                      <button
+                        onClick={() => {
+                          toggleIncludeTag(tagSearchQuery.trim());
+                          setTagSearchQuery('');
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded bg-purple-600 text-white font-semibold"
+                      >
+                        + Include "{tagSearchQuery.trim()}"
+                      </button>
+                      <button
+                        onClick={() => {
+                          toggleExcludeTag(tagSearchQuery.trim());
+                          setTagSearchQuery('');
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded bg-rose-600 text-white font-semibold"
+                      >
+                        - Exclude
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* EXCLUDE Tags Selector (Mandatory Distinct Server-side Exclusion) */}
-          <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#202030]">
+          {/* Categorized Tag Switcher */}
+          <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-[#202030]">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
-                <ShieldAlert className="w-3.5 h-3.5" /> Exclude Tags (-)
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Browse Tags by Category
               </h4>
-              <span className="text-[10px] text-slate-500">Strict filter</span>
+              <span className="text-[10px] text-slate-500">+ Include | - Exclude</span>
             </div>
-            <p className="text-[10px] text-slate-500 leading-tight">
-              Entries containing any selected tag will be strictly omitted from results.
-            </p>
-            <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto p-1">
-              {allTags.map(tag => {
-                const isExc = excludeTags.includes(tag.id);
+
+            {/* Category Tabs */}
+            <div className="grid grid-cols-2 gap-1 text-[11px] font-semibold">
+              <button
+                onClick={() => setTagCategoryTab('popular')}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+                  tagCategoryTab === 'popular'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-slate-100 dark:bg-[#171724] text-slate-400 hover:text-white'
+                }`}
+              >
+                <Flame className="w-3 h-3" /> Popular Tags
+              </button>
+              <button
+                onClick={() => setTagCategoryTab('parody')}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+                  tagCategoryTab === 'parody'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-slate-100 dark:bg-[#171724] text-slate-400 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-3 h-3" /> Parodies
+              </button>
+              <button
+                onClick={() => setTagCategoryTab('character')}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+                  tagCategoryTab === 'character'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-slate-100 dark:bg-[#171724] text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-3 h-3" /> Characters
+              </button>
+              <button
+                onClick={() => setTagCategoryTab('exclusions')}
+                className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1 transition-colors ${
+                  tagCategoryTab === 'exclusions'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-slate-100 dark:bg-[#171724] text-slate-400 hover:text-rose-300'
+                }`}
+              >
+                <ShieldAlert className="w-3 h-3 text-rose-400" /> Exclude Tropes
+              </button>
+            </div>
+
+            {/* Categorized Tag Pills */}
+            <div className="flex flex-wrap gap-1.5 max-h-64 overflow-y-auto p-1 rounded-xl bg-slate-50 dark:bg-[#0e0e15] border border-slate-200 dark:border-[#1d1d2b]">
+              {getCategoryTags().map(tag => {
+                const isInc = includeTags.includes(tag.id) || includeTags.includes(tag.normalizedName);
+                const isExc = excludeTags.includes(tag.id) || excludeTags.includes(tag.normalizedName);
+
                 return (
-                  <button
+                  <div
                     key={tag.id}
-                    onClick={() => toggleExcludeTag(tag.id)}
-                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors ${
-                      isExc
-                        ? 'bg-rose-600 text-white font-bold'
-                        : 'bg-slate-100 dark:bg-[#171724] text-slate-600 dark:text-slate-400 hover:text-rose-400 hover:border-rose-400'
+                    className={`group inline-flex items-center gap-1 text-[11px] pl-2 pr-1 py-0.5 rounded-lg border transition-all ${
+                      isInc
+                        ? 'bg-purple-600 text-white border-purple-500 shadow-glow'
+                        : isExc
+                        ? 'bg-rose-600 text-white border-rose-500'
+                        : 'bg-white dark:bg-[#161622] text-slate-300 border-slate-200 dark:border-[#26263a] hover:border-purple-500/50'
                     }`}
                   >
-                    -#{tag.normalizedName}
-                  </button>
+                    <button
+                      onClick={() => toggleIncludeTag(tag.id)}
+                      className="font-semibold hover:underline flex items-center gap-1"
+                      title={isInc ? 'Remove from included' : 'Click to Include (+)'}
+                    >
+                      <span>#{tag.normalizedName}</span>
+                      {tag.count && (
+                        <span className={`text-[9px] ${isInc || isExc ? 'text-white/80' : 'text-slate-500'}`}>
+                          {formatCount(tag.count)}
+                        </span>
+                      )}
+                    </button>
+
+                    <div className="flex items-center ml-0.5">
+                      <button
+                        onClick={() => toggleExcludeTag(tag.id)}
+                        className={`p-0.5 rounded text-[9px] font-bold ${
+                          isExc
+                            ? 'text-white hover:bg-black/30'
+                            : 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/20'
+                        }`}
+                        title="Click to Exclude (-)"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -413,7 +569,7 @@ function BrowseContent() {
           {/* Header count info */}
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>
-              Showing <strong className="text-slate-900 dark:text-white">{data?.items.length || 0}</strong> of <strong className="text-slate-900 dark:text-white">{data?.total || 0}</strong> verified records
+              Showing <strong className="text-slate-900 dark:text-white">{data?.items.length || 0}</strong> of <strong className="text-slate-900 dark:text-white">{data?.total || 0}</strong> verified nHentai releases
             </span>
             <span>
               Page {data?.page || 1} of {data?.totalPages || 1}
@@ -439,10 +595,10 @@ function BrowseContent() {
                 <Search className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                No matching catalogue entries found
+                No matching nHentai doujinshi found
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Try loosening your tag exclusions, checking spelling, or asking Nyan-chan in AI Search to recommend related circles!
+                Try loosening your tag exclusions, checking tag spelling, or using different keyword terms.
               </p>
               <button
                 onClick={handleClearAllFilters}
@@ -465,24 +621,9 @@ function BrowseContent() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-1 text-xs">
-                {[...Array(data.totalPages)].map((_, i) => {
-                  const pNum = i + 1;
-                  return (
-                    <button
-                      key={pNum}
-                      onClick={() => updateParams({ page: String(pNum) })}
-                      className={`w-8 h-8 rounded-xl font-bold transition-all ${
-                        pNum === currentPage
-                          ? 'bg-purple-600 text-white shadow-glow'
-                          : 'bg-white dark:bg-[#12121b] border border-slate-200 dark:border-[#222234] text-slate-600 dark:text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {pNum}
-                    </button>
-                  );
-                })}
-              </div>
+              <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#161622] text-slate-300">
+                Page {currentPage} of {data.totalPages}
+              </span>
 
               <button
                 onClick={() => updateParams({ page: String(Math.min(data.totalPages, currentPage + 1)) })}
@@ -505,7 +646,12 @@ function BrowseContent() {
 
 export default function BrowsePage() {
   return (
-    <Suspense fallback={<div className="p-12 text-center text-slate-400">Loading catalogue...</div>}>
+    <Suspense fallback={
+      <div className="py-24 text-center space-y-4">
+        <div className="w-10 h-10 rounded-full border-4 border-purple-500 border-t-transparent animate-spin mx-auto" />
+        <p className="text-sm text-slate-400">Loading nHentai catalogue browse...</p>
+      </div>
+    }>
       <BrowseContent />
     </Suspense>
   );

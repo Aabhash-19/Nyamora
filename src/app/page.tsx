@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CatalogueItem, SearchResponse } from '@/types';
 import { CatalogueCard } from '@/components/CatalogueCard';
-import { Sparkles, Compass, Flame, Clock, Shuffle, ArrowRight, BookOpen, Star } from 'lucide-react';
+import { Sparkles, Compass, Flame, Clock, Shuffle, ArrowRight, BookOpen, Star, Globe, Layers } from 'lucide-react';
 
 export default function DiscoverHomePage() {
   const router = useRouter();
@@ -19,18 +19,19 @@ export default function DiscoverHomePage() {
     async function loadDiscoverData() {
       try {
         setLoading(true);
-        // Fetch popular (sorted by saves)
-        const popRes = await fetch('/api/catalogue?sort=popular&pageSize=6');
+
+        // Fetch popular right now (exact 1:1 match with nHentai homepage top section)
+        const popRes = await fetch('/api/catalogue?sort=popular&pageSize=5');
         const popData: SearchResponse = await popRes.json();
         setPopularItems(popData.items || []);
 
-        // Fetch recent
+        // Fetch recent uploads (exact 1:1 match with nHentai newest grid)
         const recRes = await fetch('/api/catalogue?sort=newest&pageSize=6');
         const recData: SearchResponse = await recRes.json();
         setRecentItems(recData.items || []);
 
-        // Fetch licensed reader items
-        const licRes = await fetch('/api/catalogue?availability=integrated_licensed&pageSize=6');
+        // Fetch popular English reader items
+        const licRes = await fetch('/api/catalogue?q=language:english&sort=popular&pageSize=6');
         const licData: SearchResponse = await licRes.json();
         setLicensedItems(licData.items || []);
       } catch (err) {
@@ -64,7 +65,7 @@ export default function DiscoverHomePage() {
           <div className="lg:col-span-8 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              <span>Grounded Semantic Search & Rights-Cleared Catalogue</span>
+              <span>AI-Powered Doujin Discovery & Live nHentai Sync</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white font-display leading-tight">
@@ -72,7 +73,7 @@ export default function DiscoverHomePage() {
             </h1>
 
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Explore 50+ rights-cleared indie releases, atmospheric romances, and fantasy worlds through natural language. Strictly non-explicit search concierge, zero scraper mirrors, and lawful licensed reading.
+              Explore over 660,000+ doujinshi releases, trending circles, and authentic parody works with real-time nHentai synchronisation. Guided by Nyan-chan, featuring semantic search, strict trope exclusions, and instant online reading.
             </p>
 
             {/* Natural Language Search Box */}
@@ -80,7 +81,7 @@ export default function DiscoverHomePage() {
               <div className="relative flex items-center">
                 <input
                   type="text"
-                  placeholder="e.g. 'wholesome fantasy romance without drama' or 'Nagisa Chiaki'..."
+                  placeholder="e.g. 'wholesome romance without ugly bastard' or 'Fate Scathach'..."
                   value={quickQuery}
                   onChange={(e) => setQuickQuery(e.target.value)}
                   className="w-full pl-4 pr-28 py-3.5 text-sm rounded-2xl border transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 bg-[#161622] border-[#2d2d42] text-white placeholder:text-slate-400 shadow-inner"
@@ -97,20 +98,20 @@ export default function DiscoverHomePage() {
               {/* Quick Tag Pills */}
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="text-slate-400 py-0.5">Try:</span>
-                <Link href="/browse?include_tags=t-wholesome" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
-                  #wholesome
+                <Link href="/browse?include_tags=sole-female" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
+                  #sole female
                 </Link>
-                <Link href="/browse?include_tags=t-elf" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
-                  #elf
+                <Link href="/browse?include_tags=big-breasts" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
+                  #big breasts
                 </Link>
-                <Link href="/browse?include_tags=t-kemonomimi" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
-                  #kemonomimi
+                <Link href="/browse?include_tags=parody-fate-grand-order" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
+                  #fate grand order
                 </Link>
-                <Link href="/browse?include_tags=t-scifi" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
-                  #sci-fi
+                <Link href="/browse?include_tags=romance" className="px-2.5 py-0.5 rounded-full bg-purple-950/60 hover:bg-purple-900 border border-purple-800/50 text-purple-300 transition-colors">
+                  #romance
                 </Link>
-                <Link href="/browse?exclude_tags=t-yandere" className="px-2.5 py-0.5 rounded-full bg-rose-950/40 hover:bg-rose-900 border border-rose-800/40 text-rose-300 transition-colors">
-                  without #yandere
+                <Link href="/browse?exclude_tags=ugly-bastard" className="px-2.5 py-0.5 rounded-full bg-rose-950/40 hover:bg-rose-900 border border-rose-800/40 text-rose-300 transition-colors">
+                  without #ugly bastard
                 </Link>
               </div>
             </form>
@@ -140,74 +141,78 @@ export default function DiscoverHomePage() {
         </div>
       </section>
 
-      {/* Curated Theme Collections Banner */}
+      {/* Relevant Feature & Discovery Highlights Banner */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
+        {/* Popular Right Now */}
         <Link
-          href="/browse?include_tags=t-wholesome,t-vanilla"
+          href="/browse?sort=popular"
+          className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-amber-500 hover:shadow-glow flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3">
+              <Flame className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-amber-400 transition-colors">
+              Popular Right Now
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              Explore what is trending worldwide across the doujinshi community with live rankings.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-500 group-hover:translate-x-1 transition-transform">
+            <span>Explore popular</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </div>
+        </Link>
+
+        {/* Parodies & Franchises */}
+        <Link
+          href="/browse?include_tags=parody-fate-grand-order"
+          className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-indigo-500 hover:shadow-glow flex flex-col justify-between"
+        >
+          <div>
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3">
+              <Layers className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-indigo-400 transition-colors">
+              Parodies & Franchises
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              Fate/Grand Order, Blue Archive, Touhou, Genshin Impact, and original circle releases.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-indigo-400 group-hover:translate-x-1 transition-transform">
+            <span>Browse franchises</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </div>
+        </Link>
+
+        {/* AI Concierge with Nyan-chan */}
+        <Link
+          href="/ai-search"
           className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-purple-500 hover:shadow-glow flex flex-col justify-between"
         >
           <div>
             <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3">
-              <Star className="w-4 h-4 fill-current" />
-            </div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-purple-400 transition-colors">
-              Pure Vanilla & Wholesome
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Consensual, gentle, heartwarming intimacy and slow-burn confessions.
-            </p>
-          </div>
-          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition-transform">
-            <span>Explore collection</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </div>
-        </Link>
-
-        <Link
-          href="/browse?include_tags=t-kemonomimi"
-          className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-purple-500 hover:shadow-glow flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center mb-3">
               <Sparkles className="w-4 h-4" />
             </div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-pink-400 transition-colors">
-              Kemonomimi & Maid Cafes
+            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-purple-400 transition-colors">
+              AI Search with Nyan-chan
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Playful cat-girls, kitsune shrine maidens, and cheerful animal ears.
+              Describe your cravings in plain words, filter by creators, or exclude specific tropes.
             </p>
           </div>
-          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-pink-500 group-hover:translate-x-1 transition-transform">
-            <span>Explore collection</span>
+          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-purple-400 group-hover:translate-x-1 transition-transform">
+            <span>Ask Nyan-chan</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </Link>
 
+        {/* English Translated Releases */}
         <Link
-          href="/browse?include_tags=t-scifi"
-          className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-purple-500 hover:shadow-glow flex flex-col justify-between"
-        >
-          <div>
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-3">
-              <Compass className="w-4 h-4" />
-            </div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-cyan-400 transition-colors">
-              Cyberpunk & Orbital Sci-Fi
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Neon metropolises, cyborg mechanics, and heartfelt telemetry in deep space.
-            </p>
-          </div>
-          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-cyan-500 group-hover:translate-x-1 transition-transform">
-            <span>Explore collection</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </div>
-        </Link>
-
-        <Link
-          href="/browse?availability=integrated_licensed"
+          href="/browse?language=english"
           className="group p-5 rounded-2xl border transition-all bg-white dark:bg-[#12121b] border-slate-200 dark:border-[#202030] hover:border-emerald-500 hover:shadow-glow flex flex-col justify-between"
         >
           <div>
@@ -215,34 +220,104 @@ export default function DiscoverHomePage() {
               <BookOpen className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-base text-slate-900 dark:text-white group-hover:text-emerald-400 transition-colors">
-              Licensed Hosted Readers
+              English Translated Releases
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              Indie releases with documented permissions ready to read directly here.
+              Over 150,000+ localized releases ready to read immediately in our fast WebP reader.
             </p>
           </div>
-          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-500 group-hover:translate-x-1 transition-transform">
-            <span>Read online</span>
+          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-400 group-hover:translate-x-1 transition-transform">
+            <span>Read in English</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </div>
         </Link>
 
       </section>
 
-      {/* Licensed Hosted Works Shelf */}
+      {/* Popular Right Now Shelf (Synchronous with nHentai Homepage Top) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Flame className="w-5 h-5 text-amber-500" />
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-display">
+              Popular Right Now
+            </h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30">
+              Live from nHentai
+            </span>
+          </div>
+          <Link
+            href="/browse?sort=popular"
+            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+          >
+            View all popular <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="aspect-[3/4] rounded-2xl bg-slate-200 dark:bg-[#161622] animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {popularItems.map((item) => (
+              <CatalogueCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* New Uploads Shelf (Synchronous with nHentai Recent Uploads) */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-display">
+              New Uploads
+            </h2>
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Real-time synchronised releases
+            </span>
+          </div>
+          <Link
+            href="/browse?sort=newest"
+            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+          >
+            Browse all new releases <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="aspect-[3/4] rounded-2xl bg-slate-200 dark:bg-[#161622] animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {recentItems.map((item) => (
+              <CatalogueCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Interactive Doujinshi Reader (English Releases) */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-emerald-400" />
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-display">
-              Licensed Hosted Releases
+              Interactive Doujinshi Reader
             </h2>
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
-              Interactive Reader Ready
+              English Translated
             </span>
           </div>
           <Link
-            href="/browse?availability=integrated_licensed"
+            href="/browse?language=english"
             className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
           >
             View all ({licensedItems.length}+) <ArrowRight className="w-3.5 h-3.5" />
@@ -258,73 +333,6 @@ export default function DiscoverHomePage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {licensedItems.map((item) => (
-              <CatalogueCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Popular & Trending Shelf */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5 text-amber-500" />
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-display">
-              Popular in Archive
-            </h2>
-            <span className="text-xs text-slate-400 hidden sm:inline">
-              Ranked by community library saves
-            </span>
-          </div>
-          <Link
-            href="/browse?sort=popular"
-            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
-          >
-            View full rankings <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-slate-200 dark:bg-[#161622] animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {popularItems.map((item) => (
-              <CatalogueCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Recently Added Shelf */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-display">
-              Recently Added Releases
-            </h2>
-          </div>
-          <Link
-            href="/browse?sort=newest"
-            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
-          >
-            Browse catalogue <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-slate-200 dark:bg-[#161622] animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {recentItems.map((item) => (
               <CatalogueCard key={item.id} item={item} />
             ))}
           </div>

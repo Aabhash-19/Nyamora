@@ -1,6 +1,6 @@
 // Unified Multi-Source Architecture (Enma-style provider interface)
 
-import { CatalogueItem, StructuredSearchQuery, SearchResponse } from '@/types';
+import { CatalogueItem, StructuredSearchQuery, SearchResponse, ReaderAsset } from '@/types';
 
 export interface SourceCapabilities {
   supportsSearch: boolean;
@@ -9,6 +9,7 @@ export interface SourceCapabilities {
   supportsTagBrowse: boolean;
   supportsPagination: boolean;
   supportsContentFilter: boolean;
+  supportsReader?: boolean;
 }
 
 export interface UnifiedMangaSource {
@@ -22,4 +23,5 @@ export interface UnifiedMangaSource {
   getById(id: string): Promise<CatalogueItem | null>;
   getRandom(): Promise<CatalogueItem | null>;
   healthCheck(): Promise<{ status: 'healthy' | 'degraded' | 'offline'; message: string }>;
+  getPages?(id: string): Promise<ReaderAsset[]>;
 }

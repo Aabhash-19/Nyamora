@@ -28,6 +28,32 @@ test('Nyan-chan AI Concierge: honors exclusions in conversational query', async 
   }
 });
 
+test('Nyan-chan AI Concierge: exhibits seductive, flirtatious, and teasing personality', async () => {
+  const greetingReply = await nyanChanAssistant.chat('Hello Nyan-chan');
+  assert.equal(greetingReply.expression, 'wink');
+  assert.ok(greetingReply.text.includes('darling'), 'Should address user affectionately');
+  assert.ok(greetingReply.text.includes('♡'), 'Should include teasing heart marks');
+  assert.ok(greetingReply.text.includes('fufufu') || greetingReply.text.includes('Nya'), 'Should use playful teasing tics');
+
+  const spiceReply = await nyanChanAssistant.chat('kemonomimi catgirl maid');
+  assert.ok(spiceReply.expression === 'wink' || spiceReply.expression === 'happy' || spiceReply.expression === 'ahegao');
+  assert.ok(spiceReply.text.toLowerCase().includes('ears') || spiceReply.text.includes('darling'));
+});
+
+test('Semantic Search: handles dead-accurate synonym expansions and multi-word negations', async () => {
+  const reply = await nyanChanAssistant.chat('wholesome romance without ugly bastard -ntr');
+  const query = reply.structuredQuery;
+  assert.ok(query, 'Must return structured query');
+
+  // Multi-word exclusion check
+  const hasUglyBastardExcluded = query.exclude_tags.some(t => t.includes('ugly') || t.includes('bastard'));
+  assert.ok(hasUglyBastardExcluded, 'Should exclude ugly bastard');
+
+  // ntr synonym to netorare
+  const hasNtrExcluded = query.exclude_tags.some(t => t.includes('netorare') || t.includes('ntr'));
+  assert.ok(hasNtrExcluded, 'Should exclude netorare');
+});
+
 test('Reader Gate: integrated reader is enabled for licensed items with approved rights and blocked when revoked', () => {
   // nym-101 has approved rights and integrated reader
   const item101 = db.getItemById('nym-101');

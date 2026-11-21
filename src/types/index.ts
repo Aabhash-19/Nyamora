@@ -157,6 +157,8 @@ export interface NyanChanMessage {
   timestamp: string;
   structuredQuery?: Partial<StructuredSearchQuery>;
   recommendedItems?: SearchResultItem[];
+  allResults?: SearchResultItem[];
+  totalFound?: number;
   clarificationQuestion?: string;
   suggestedTags?: string[];
   expression?: 'normal' | 'happy' | 'thinking' | 'wink' | 'ahegao' | 'smug';

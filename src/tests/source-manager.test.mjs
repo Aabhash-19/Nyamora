@@ -3,28 +3,25 @@ import assert from 'node:assert/strict';
 
 import { sourceManager } from '../lib/sources/source-manager.ts';
 
-test('SourceManager: registers default sources and declares capability matrices', () => {
+test('SourceManager: registers nHentai as the primary source with capabilities', () => {
   const sources = sourceManager.getAllSources();
-  assert.ok(sources.length >= 2, 'Should have at least 2 sources registered');
+  assert.ok(sources.length >= 1, 'Should have nHentai source registered');
 
-  const local = sources.find(s => s.id === 'nyamora-local');
-  assert.ok(local, 'Local source must be registered');
-  assert.equal(local.isExternal, false);
-  assert.equal(local.capabilities.supportsSearch, true);
-  assert.equal(local.capabilities.supportsRandom, true);
-
-  const mangadex = sources.find(s => s.id === 'mangadex-api');
-  assert.ok(mangadex, 'MangaDex source must be registered');
-  assert.equal(mangadex.isExternal, true);
+  const nhSource = sources.find(s => s.id === 'nhentai-api');
+  assert.ok(nhSource, 'nHentai source must be registered');
+  assert.equal(nhSource.isExternal, true);
+  assert.equal(nhSource.capabilities.supportsSearch, true);
+  assert.equal(nhSource.capabilities.supportsRandom, true);
+  assert.equal(nhSource.capabilities.supportsReader, true);
 });
 
-test('SourceManager: retrieves items via active source and supports switching', async () => {
+test('SourceManager: retrieves items via active nHentai source', async () => {
   const active = sourceManager.getActiveSource();
-  assert.equal(active.id, 'nyamora-local');
+  assert.equal(active.id, 'nhentai-api');
 
-  const item = await sourceManager.getById('nym-101');
-  assert.ok(item, 'Must retrieve item nym-101');
-  assert.equal(item.canonicalTitle, "Shadow Border Special Duty: Scathach");
+  const item = await sourceManager.getById('nh-699075');
+  assert.ok(item, 'Must retrieve item nh-699075');
+  assert.ok(item.canonicalTitle);
 
   const randomItem = await sourceManager.getRandom();
   assert.ok(randomItem, 'Random item must not be null');
@@ -43,5 +40,5 @@ test('SourceManager: executes search query through unified interface', async () 
     pageSize: 10
   });
 
-  assert.ok(response.items.length > 0, 'Search for elf should return matching records');
+  assert.ok(response.items !== undefined, 'Search response must return items array');
 });

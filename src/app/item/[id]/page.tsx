@@ -137,6 +137,15 @@ export default function ItemDetailPage({
             <img
               src={item.coverImage}
               alt={item.canonicalTitle}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (item.coverImage.includes('nhentai.net') && !target.src.includes('/api/nhentai/image')) {
+                  target.src = `/api/nhentai/image?url=${encodeURIComponent(item.coverImage)}`;
+                } else {
+                  target.src = 'https://t1.nhentai.net/galleries/4345208/thumb.webp';
+                }
+              }}
               className="w-full h-full object-cover"
             />
           </div>

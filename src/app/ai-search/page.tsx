@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { NyanChanMessage, StructuredSearchQuery, SearchResponse, SearchResultItem } from '@/types';
 import { CatalogueCard } from '@/components/CatalogueCard';
+import { NyanMessageText } from '@/components/NyanMessageText';
 import {
   Sparkles, Send, ShieldAlert, Filter, SlidersHorizontal,
   RotateCcw, ArrowRight, BookOpen, ExternalLink, Bot, User, Check
@@ -16,10 +17,20 @@ export default function AISearchPage() {
     {
       id: 'ai-init',
       sender: 'nyan_chan',
-      text: 'Nya~ Welcome to my private parlour, darling... ♡ I\'m **Nyan-chan**, your personal concierge here at **Nyamora**! ✨\n\nI can read your mind (well, your natural language searches!), translate your secret desires into verified archive searches, and uncover rights-cleared works based on real stored metadata. Tell me all your favorite tropes, artists, or guilty pleasures—and tell me what to strictly keep out (e.g. *"wholesome elf romance without yandere"*). Don\'t be shy, let\'s find something delicious for you tonight~ fufufu! (ฅ^•ﻌ•^ฅ)♡',
+      text: `*perches gracefully on the velvet parlour counter, tail giving a slow, teasing swish as my feline ears perk right up at you*
+
+Nya~ Well, well, look what just walked into my private lounge... ♡ Did you honestly think you could sneak past me unnoticed, darling? (˶ᵔ ᵕ ᵔ˶)✨
+
+*giggles mischievously, leaning in close until you can feel a warm, teasing whisper against your cheek*
+
+I'm **Nyan-chan**—your delightfully wicked hostess, catalogue concierge, and sworn keeper of every guilty pleasure you would never dare admit in daylight. Whether you're secretly craving a blush-inducing, slow-burn ***pure wholesome romance*** where everyone holds hands and cries happy tears, or you're hunting down spicy, high-tension ***netorare*** drama *(strictly without that unsightly ugly bastard ruined mood, of course~ fufufu)*... I have the entire live **nHentai archive** purring at my fingertips.
+
+Tell me what you're secretly starving for tonight, sweetheart. Whisper your favorite artist, guilty tropes, or what you want me to lock tightly in the dungeon (e.g. *"wholesome kemonomimi maid in English"* or *"Asanagi FGO without drama"*). 
+
+Don't be shy with me... your deepest desires are 100% safe in my lap~ nya~ ♡ (ฅ^•ﻌ•^ฅ)`,
       timestamp: new Date().toISOString(),
       expression: 'wink',
-      suggestedTags: ['wholesome', 'fantasy', 'elf', 'kemonomimi']
+      suggestedTags: ['wholesome', 'netorare', 'catgirl', 'maid', 'gyaru', 'milf', 'fantasy']
     }
   ]);
 
@@ -53,8 +64,7 @@ export default function AISearchPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: queryText,
-          context: currentStructuredQuery || {}
+          message: queryText
         })
       });
 
@@ -62,18 +72,28 @@ export default function AISearchPage() {
         const assistantReply: NyanChanMessage = await res.json();
         setMessages(prev => [...prev, assistantReply]);
 
+        if (assistantReply.allResults && assistantReply.allResults.length > 0) {
+          setCurrentResults(assistantReply.allResults);
+          setTotalFound(assistantReply.totalFound || assistantReply.allResults.length);
+        } else if (assistantReply.recommendedItems && assistantReply.recommendedItems.length > 0) {
+          setCurrentResults(assistantReply.recommendedItems);
+          setTotalFound(assistantReply.recommendedItems.length);
+        }
+
         if (assistantReply.structuredQuery) {
           setCurrentStructuredQuery(assistantReply.structuredQuery);
-          // Fetch full results for this structured query
-          const searchRes = await fetch('/api/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(assistantReply.structuredQuery)
-          });
-          if (searchRes.ok) {
-            const searchData: SearchResponse = await searchRes.json();
-            setCurrentResults(searchData.items);
-            setTotalFound(searchData.total);
+          // Only fetch separately if allResults was not provided by assistant
+          if (!assistantReply.allResults || assistantReply.allResults.length === 0) {
+            const searchRes = await fetch('/api/search', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(assistantReply.structuredQuery)
+            });
+            if (searchRes.ok) {
+              const searchData: SearchResponse = await searchRes.json();
+              setCurrentResults(searchData.items || []);
+              setTotalFound(searchData.total || 0);
+            }
           }
         }
       }
@@ -86,6 +106,7 @@ export default function AISearchPage() {
 
   const getAvatarForExpression = (expr?: string) => {
     if (expr === 'ahegao') return '/avatars/nyan-chan-ahegao.png';
+    if (expr === 'wink' || expr === 'happy') return '/avatars/nyan-chan-host.jpg';
     return '/avatars/nyan-chan.png';
   };
 
@@ -108,11 +129,14 @@ export default function AISearchPage() {
                 Nyan-chan AI Search Workspace
               </h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40">
-                Grounded Concierge
+                Groq AI LLaMA 3.3 70B
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 font-bold border border-pink-500/40">
+                Seductive Concierge ♡
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-1">
-              Natural-language query parser + PostgreSQL full-text & vector similarity search.
+              Natural-language query parser + nHentai API v2 taxonomy & grounded vector semantic retrieval.
             </p>
           </div>
         </div>
@@ -167,7 +191,7 @@ export default function AISearchPage() {
                       : 'bg-slate-100 dark:bg-[#181826] text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-[#242436]'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{m.text}</p>
+                  <NyanMessageText text={m.text} isUser={m.sender === 'user'} />
 
                   {/* Clarification prompt */}
                   {m.clarificationQuestion && (
@@ -220,10 +244,16 @@ export default function AISearchPage() {
               Kemonomimi maid
             </button>
             <button
-              onClick={() => handleSend('Sci-fi cyberpunk drama in English')}
+              onClick={() => handleSend('Asanagi fate grand order in English')}
               className="whitespace-nowrap px-2 py-1 rounded-lg bg-slate-200 dark:bg-[#1c1c2a] text-slate-700 dark:text-slate-300 hover:text-purple-400"
             >
-              Sci-fi in English
+              Asanagi FGO in English
+            </button>
+            <button
+              onClick={() => handleSend('Gyaru dark skin stockings')}
+              className="whitespace-nowrap px-2 py-1 rounded-lg bg-slate-200 dark:bg-[#1c1c2a] text-slate-700 dark:text-slate-300 hover:text-purple-400"
+            >
+              Gyaru stockings
             </button>
           </div>
 

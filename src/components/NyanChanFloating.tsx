@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NyanChanMessage, SearchResultItem } from '@/types';
+import { NyanMessageText } from '@/components/NyanMessageText';
 import { Sparkles, MessageCircle, X, Send, BookOpen, ExternalLink, RefreshCw } from 'lucide-react';
 
 export function NyanChanFloating() {
@@ -15,10 +16,14 @@ export function NyanChanFloating() {
     {
       id: 'welcome',
       sender: 'nyan_chan',
-      text: 'Nya~ looking for something naughty tonight, darling? ♡ I\'m **Nyan-chan**, host of Nyamora. Tell me what kind of sweet or spicy doujin you\'re craving, or what you want me to keep away from your sight! (˶ᵔ ᵕ ᵔ˶)✨',
+      text: `*peeks out from behind the screen with a playful purr and a mischievous wink*
+
+Nya~ caught you browsing, darling! ♡ I'm **Nyan-chan**, your personal catalogue concierge. 
+
+Craving a sweet, gentle ***wholesome romance*** or something wickedly spicy like ***netorare*** *(without any ugly bastards, of course)*? Tell me what you desire, or what to keep far away from your eyes~ (˶ᵔ ᵕ ᵔ˶)✨`,
       timestamp: new Date().toISOString(),
       expression: 'wink',
-      suggestedTags: ['wholesome', 'fantasy', 'kemonomimi', 'office romance']
+      suggestedTags: ['wholesome', 'netorare', 'catgirl', 'maid', 'gyaru', 'milf']
     }
   ]);
 
@@ -81,11 +86,12 @@ export function NyanChanFloating() {
 
   const getAvatarForExpression = (expr?: string) => {
     if (expr === 'ahegao') return '/avatars/nyan-chan-ahegao.png';
+    if (expr === 'wink' || expr === 'happy') return '/avatars/nyan-chan-host.jpg';
     return '/avatars/nyan-chan.png';
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40">
       
       {/* Floating Trigger Button */}
       {!isOpen && (
@@ -181,7 +187,7 @@ export function NyanChanFloating() {
                       : 'bg-slate-100 dark:bg-[#181826] text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-[#242438]'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{m.text}</p>
+                  <NyanMessageText text={m.text} isUser={m.sender === 'user'} />
 
                   {/* Grounded Recommended Items Cards */}
                   {m.recommendedItems && m.recommendedItems.length > 0 && (
