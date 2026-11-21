@@ -24,7 +24,7 @@ test('SourceManager: retrieves items via active source and supports switching', 
 
   const item = await sourceManager.getById('nym-101');
   assert.ok(item, 'Must retrieve item nym-101');
-  assert.equal(item.canonicalTitle, "Moonlit Sanctuary ~ The Silver Elf's Secret");
+  assert.equal(item.canonicalTitle, "Shadow Border Special Duty: Scathach");
 
   const randomItem = await sourceManager.getRandom();
   assert.ok(randomItem, 'Random item must not be null');

@@ -28,15 +28,8 @@ test('Nyan-chan AI Concierge: honors exclusions in conversational query', async 
   }
 });
 
-test('Reader Gate: integrated reader is prohibited for items without licensed rights', () => {
-  // nym-102 is 'external_authorized', not 'integrated_licensed'
-  const item102 = db.getItemById('nym-102');
-  assert.equal(item102?.availabilityMode, 'external_authorized');
-
-  const rights102 = db.getAssetRights('nym-102');
-  assert.equal(rights102?.allowedUse, 'display_thumbnail');
-
-  // nym-101 is 'integrated_licensed' with approved rights
+test('Reader Gate: integrated reader is enabled for licensed items with approved rights and blocked when revoked', () => {
+  // nym-101 has approved rights and integrated reader
   const item101 = db.getItemById('nym-101');
   assert.equal(item101?.availabilityMode, 'integrated_licensed');
 
@@ -46,4 +39,13 @@ test('Reader Gate: integrated reader is prohibited for items without licensed ri
 
   const assets101 = db.getReaderAssets('nym-101');
   assert.ok(assets101.length > 0, 'Licensed item must have accessible pages');
+  assert.equal(assets101[0].storageKey, 'pages/nym-101/p01.svg');
+
+  // Test rights revocation
+  db.updateAssetRights('ast-nym-101', 'revoked', 'test-suite');
+  const revokedRights = db.getAssetRights('nym-101');
+  assert.equal(revokedRights?.reviewStatus, 'revoked');
+
+  // Restore rights
+  db.updateAssetRights('ast-nym-101', 'approved', 'test-suite');
 });

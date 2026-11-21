@@ -53,7 +53,7 @@ test('Database: rights and eligibility gates block quarantined or prohibited ite
   // Quarantine item nym-105 temporarily
   db.updateItemStatus('nym-105', 'quarantined', 'test-suite');
 
-  const query = service.parseNaturalQuery('Countess of Thorns');
+  const query = service.parseNaturalQuery('Crimson Moon Requiem');
   const response = service.search(query);
 
   const foundQuarantined = response.items.some(i => i.id === 'nym-105');
